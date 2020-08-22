@@ -76,11 +76,12 @@ impl ConfigMetadata {
         let matcher = SkimMatcherV2::default();
         let mut matches = vec![];
         for entry in &self.entries {
-            if matcher.fuzzy_match(entry.description(), filter).is_some() {
-                matches.push(entry)
+            if let Some(score) = matcher.fuzzy_match(entry.description(), filter) {
+                matches.push((entry, score))
             }
         }
-        matches
+        matches.sort_by(|a, b| b.1.cmp(&a.1));
+        matches.into_iter().map(|(val, _)| val).collect()
     }
 }
 
@@ -206,5 +207,16 @@ mod tests {
         let config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("qw");
         assert!(filtered_entries.is_empty());
+    }
+
+    #[test]
+    fn filter_i3_entries_sorted() {
+        let sample = "## group1 // abdc // keys1 ##
+        ## group2 // abc // keys2 ##";
+        let config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("abc");
+        assert_eq!(filtered_entries.len(), 2);
+        assert_eq!(filtered_entries[0].description(), String::from("abc"));
+        assert_eq!(filtered_entries[1].description(), String::from("abdc"));
     }
 }
