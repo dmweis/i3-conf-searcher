@@ -34,6 +34,10 @@ impl ConfigEntry {
     pub fn description(&self) -> &str {
         &self.description
     }
+
+    pub fn keys(&self) -> &str {
+        &self.keys
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,7 +1,8 @@
 mod i3_config;
 
 use iced::{
-    text_input, Application, Column, Command, Container, Element, Length, Settings, Text, TextInput,
+    text_input, Align, Application, Column, Command, Container, Element, Font, Length, Row,
+    Settings, Space, Text, TextInput,
 };
 
 pub fn main() {
@@ -54,7 +55,7 @@ impl Application for Searcher {
             Message::ConfigLoaded(Ok(config)) => {
                 *self = Searcher::Searching {
                     search_string: String::from(""),
-                    text_input_state: text_input::State::new(),
+                    text_input_state: text_input::State::focused(),
                     shortcuts: config,
                 };
 
@@ -91,19 +92,19 @@ impl Application for Searcher {
             } => {
                 let input = TextInput::new(
                     text_input_state,
-                    "Enter search terms",
+                    "Enter search here...",
                     search_string,
                     Message::InputChanged,
                 )
                 .width(Length::Fill)
                 .size(40);
 
-                let entries = shortcuts.filter(&search_string).iter().fold(
-                    Column::new(),
-                    |column: Column<Message>, config_entry| {
-                        column.push(Text::new(config_entry.description().to_owned()))
-                    },
-                );
+                let entries = shortcuts
+                    .filter(&search_string)
+                    .iter()
+                    .fold(Column::new(), |column: Column<Message>, config_entry| {
+                        column.push(config_entry.view())
+                    });
 
                 let content = Column::new()
                     .push(input)
@@ -122,3 +123,25 @@ impl Application for Searcher {
             .into()
     }
 }
+
+trait ViewModel {
+    fn view(&self) -> Element<Message>;
+}
+
+impl ViewModel for i3_config::ConfigEntry {
+    fn view(&self) -> Element<Message> {
+        Row::new()
+            .width(Length::Fill)
+            .align_items(Align::Center)
+            .padding(10)
+            .push(Text::new(self.description().to_owned()).font(FONT).size(20))
+            .push(Space::new(Length::Fill, Length::Shrink))
+            .push(Text::new(self.keys().to_owned()).font(FONT).size(20))
+            .into()
+    }
+}
+
+const FONT: Font = Font::External {
+    name: "Icons",
+    bytes: include_bytes!("../fonts/MesloLGS NF Regular.ttf"),
+};
