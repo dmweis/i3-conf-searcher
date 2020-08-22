@@ -1,11 +1,10 @@
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use regex::Regex;
-use std::io;
 use std::{error, fmt};
 use tokio_i3ipc::I3;
 
-type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn error::Error + Send + Sync>>;
 
 #[derive(Debug, Clone)]
 struct I3ConfigError;
@@ -32,7 +31,7 @@ pub struct ConfigEntry {
 }
 
 impl ConfigEntry {
-    fn description(&self) -> &str {
+    pub fn description(&self) -> &str {
         &self.description
     }
 }
@@ -70,6 +69,11 @@ impl ConfigMetadata {
             entries.push(entry);
         }
         Ok(ConfigMetadata { entries })
+    }
+
+    pub async fn load_ipc() -> Result<ConfigMetadata> {
+        let config_text = get_i3_config_ipc().await?;
+        ConfigMetadata::parse(&config_text)
     }
 
     pub fn filter(&self, filter: &str) -> Vec<&ConfigEntry> {
