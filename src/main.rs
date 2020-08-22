@@ -1,8 +1,7 @@
 mod i3_config;
 
 use iced::{
-    text_input, Application, Column, Command, Container, Element, Length,
-    Settings, Text, TextInput,
+    text_input, Application, Column, Command, Container, Element, Length, Settings, Text, TextInput,
 };
 
 pub fn main() {
