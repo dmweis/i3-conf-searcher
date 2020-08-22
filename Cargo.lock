@@ -28,16 +28,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
-name = "chonk"
-version = "0.1.0"
-dependencies = [
- "futures",
- "regex",
- "tokio",
- "tokio-i3ipc",
-]
-
-[[package]]
 name = "fuchsia-zircon"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -146,6 +136,16 @@ dependencies = [
  "proc-macro-hack",
  "proc-macro-nested",
  "slab",
+]
+
+[[package]]
+name = "i3-conf-searcher"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "regex",
+ "tokio",
+ "tokio-i3ipc",
 ]
 
 [[package]]
