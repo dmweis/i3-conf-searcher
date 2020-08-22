@@ -191,4 +191,20 @@ mod tests {
             String::from("description1")
         );
     }
+
+    #[test]
+    fn filter_i3_entries_empty_returns_all() {
+        let sample = simple_i3_config();
+        let config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("");
+        assert_eq!(filtered_entries.len(), 2);
+    }
+
+    #[test]
+    fn filter_i3_entries_no_match() {
+        let sample = simple_i3_config();
+        let config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("qw");
+        assert!(filtered_entries.is_empty());
+    }
 }
