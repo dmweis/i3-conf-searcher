@@ -1,10 +1,9 @@
-use tokio_i3ipc::I3;
-use std::io;
 use regex::Regex;
-use std::{ error, fmt };
- 
-type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+use std::io;
+use std::{error, fmt};
+use tokio_i3ipc::I3;
 
+type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 #[derive(Debug, Clone)]
 struct I3ConfigError;
@@ -27,12 +26,12 @@ async fn get_i3_config_ipc() -> Result<String> {
 pub struct ConfigEntry {
     group: String,
     description: String,
-    keys: String
+    keys: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConfigMetadata {
-    entries: Vec<ConfigEntry>
+    entries: Vec<ConfigEntry>,
 }
 
 impl ConfigMetadata {
@@ -41,18 +40,30 @@ impl ConfigMetadata {
         let mut entries = vec![];
         for cap in re.captures_iter(text) {
             let entry = ConfigEntry {
-                group: cap.name("group").ok_or(I3ConfigError)?.as_str().trim().to_owned(),
-                description: cap.name("description").ok_or(I3ConfigError)?.as_str().trim().to_owned(),
-                keys: cap.name("keys").ok_or(I3ConfigError)?.as_str().trim().to_owned(),
+                group: cap
+                    .name("group")
+                    .ok_or(I3ConfigError)?
+                    .as_str()
+                    .trim()
+                    .to_owned(),
+                description: cap
+                    .name("description")
+                    .ok_or(I3ConfigError)?
+                    .as_str()
+                    .trim()
+                    .to_owned(),
+                keys: cap
+                    .name("keys")
+                    .ok_or(I3ConfigError)?
+                    .as_str()
+                    .trim()
+                    .to_owned(),
             };
             entries.push(entry);
         }
-        Ok(ConfigMetadata {
-            entries
-        })
+        Ok(ConfigMetadata { entries })
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -66,16 +77,22 @@ mod tests {
         bindsym $mod+grave exec /usr/bin/x-terminal-emulator";
         let config = ConfigMetadata::parse(sample).unwrap();
         assert_eq!(config.entries.len(), 2);
-        assert_eq!(config.entries[0], ConfigEntry{
-            group: String::from("group1"),
-            description: String::from("description1"),
-            keys: String::from("keys1"),
-        });
-        assert_eq!(config.entries[1], ConfigEntry{
-            group: String::from("group2"),
-            description: String::from("description2"),
-            keys: String::from("keys2"),
-        });
+        assert_eq!(
+            config.entries[0],
+            ConfigEntry {
+                group: String::from("group1"),
+                description: String::from("description1"),
+                keys: String::from("keys1"),
+            }
+        );
+        assert_eq!(
+            config.entries[1],
+            ConfigEntry {
+                group: String::from("group2"),
+                description: String::from("description2"),
+                keys: String::from("keys2"),
+            }
+        );
     }
 
     #[test]
@@ -85,7 +102,6 @@ mod tests {
         let config = ConfigMetadata::parse(sample).unwrap();
         assert_eq!(config.entries.len(), 0);
     }
-
 
     #[test]
     fn parse_simple_i3_empty() {
@@ -99,11 +115,14 @@ mod tests {
         let sample = "## group1 // description1 // keys1 ## some comments";
         let config = ConfigMetadata::parse(sample).unwrap();
         assert_eq!(config.entries.len(), 1);
-        assert_eq!(config.entries[0], ConfigEntry{
-            group: String::from("group1"),
-            description: String::from("description1"),
-            keys: String::from("keys1"),
-        });
+        assert_eq!(
+            config.entries[0],
+            ConfigEntry {
+                group: String::from("group1"),
+                description: String::from("description1"),
+                keys: String::from("keys1"),
+            }
+        );
     }
 
     #[test]
@@ -111,11 +130,14 @@ mod tests {
         let sample = "## this is group1 // this is description1 // this is keys1 ##";
         let config = ConfigMetadata::parse(sample).unwrap();
         assert_eq!(config.entries.len(), 1);
-        assert_eq!(config.entries[0], ConfigEntry{
-            group: String::from("this is group1"),
-            description: String::from("this is description1"),
-            keys: String::from("this is keys1"),
-        });
+        assert_eq!(
+            config.entries[0],
+            ConfigEntry {
+                group: String::from("this is group1"),
+                description: String::from("this is description1"),
+                keys: String::from("this is keys1"),
+            }
+        );
     }
 
     #[test]
@@ -124,10 +146,13 @@ mod tests {
         ## group1 // description1 // keys1 ##";
         let config = ConfigMetadata::parse(sample).unwrap();
         assert_eq!(config.entries.len(), 1);
-        assert_eq!(config.entries[0], ConfigEntry{
-            group: String::from("group1"),
-            description: String::from("description1"),
-            keys: String::from("keys1"),
-        });
+        assert_eq!(
+            config.entries[0],
+            ConfigEntry {
+                group: String::from("group1"),
+                description: String::from("description1"),
+                keys: String::from("keys1"),
+            }
+        );
     }
 }
