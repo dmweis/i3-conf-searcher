@@ -1,3 +1,5 @@
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use regex::Regex;
 use std::io;
 use std::{error, fmt};
@@ -27,6 +29,12 @@ pub struct ConfigEntry {
     group: String,
     description: String,
     keys: String,
+}
+
+impl ConfigEntry {
+    fn description(&self) -> &str {
+        &self.description
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -63,18 +71,34 @@ impl ConfigMetadata {
         }
         Ok(ConfigMetadata { entries })
     }
+
+    pub fn filter(&self, filter: &str) -> Vec<&ConfigEntry> {
+        let matcher = SkimMatcherV2::default();
+        let mut matches = vec![];
+        for entry in &self.entries {
+            if matcher.fuzzy_match(entry.description(), filter).is_some() {
+                matches.push(entry)
+            }
+        }
+        matches
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn parse_simple_i3_config() {
+    fn simple_i3_config() -> &'static str {
         let sample = "## group1 // description1 // keys1 ##
         bindsym $mod+Ctrl+$alt+Left move workspace to output left
         ## group2 // description2 // keys2 ##
         bindsym $mod+grave exec /usr/bin/x-terminal-emulator";
+        sample
+    }
+
+    #[test]
+    fn parse_simple_i3_config() {
+        let sample = simple_i3_config();
         let config = ConfigMetadata::parse(sample).unwrap();
         assert_eq!(config.entries.len(), 2);
         assert_eq!(
@@ -153,6 +177,18 @@ mod tests {
                 description: String::from("description1"),
                 keys: String::from("keys1"),
             }
+        );
+    }
+
+    #[test]
+    fn filter_i3_entries() {
+        let sample = simple_i3_config();
+        let config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("dsc1");
+        assert_eq!(filtered_entries.len(), 1);
+        assert_eq!(
+            filtered_entries[0].description(),
+            String::from("description1")
         );
     }
 }

@@ -139,10 +139,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "fuzzy-matcher"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cda28c4acb13182d935e0ab6bc12329d1d22134d69801d0836d1ae4b47054f2a"
+dependencies = [
+ "thread_local",
+]
+
+[[package]]
 name = "i3-conf-searcher"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "fuzzy-matcher",
  "regex",
  "tokio",
  "tokio-i3ipc",
