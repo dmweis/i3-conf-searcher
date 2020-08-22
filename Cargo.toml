@@ -4,6 +4,12 @@ version = "0.1.0"
 authors = ["David Weis <dweis7@gmail.com>"]
 edition = "2018"
 
+
+homepage = "https://github.com/dmweis/i3-conf-searcher"
+repository = "https://github.com/dmweis/i3-conf-searcher"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
