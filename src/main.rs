@@ -1,4 +1,7 @@
 mod i3_config;
+mod style;
+
+use style::Theme;
 
 use iced::{
     scrollable, text_input, Align, Application, Color, Column, Command, Container, Element, Font,
@@ -11,10 +14,10 @@ pub fn main() {
 
 #[derive(Debug)]
 struct State {
-        scroll: scrollable::State,
-        search_string: String,
-        text_input_state: text_input::State,
-        shortcuts: i3_config::ConfigMetadata,
+    scroll: scrollable::State,
+    search_string: String,
+    text_input_state: text_input::State,
+    shortcuts: i3_config::ConfigMetadata,
 }
 
 impl State {
@@ -93,6 +96,7 @@ impl Application for Searcher {
                 .height(Length::Fill)
                 .center_x()
                 .center_y()
+                .style(Theme::Dark)
                 .into(),
             Searcher::Error => Container::new(
                 Text::new("Error loading i3 config")
@@ -103,6 +107,7 @@ impl Application for Searcher {
             .height(Length::Fill)
             .center_x()
             .center_y()
+            .style(Theme::Dark)
             .into(),
             Searcher::Searching(state) => {
                 let input = TextInput::new(
@@ -112,6 +117,7 @@ impl Application for Searcher {
                     Message::InputChanged,
                 )
                 .width(Length::Fill)
+                .style(Theme::Dark)
                 .size(40);
 
                 let entries = state.shortcuts
@@ -121,15 +127,16 @@ impl Application for Searcher {
                         column.push(config_entry.view())
                     });
 
-                let scrollable_entries = Scrollable::new(&mut state.scroll).push(entries);
+                let scrollable_entries = Scrollable::new(&mut state.scroll).push(entries).style(Theme::Dark);
 
                 let content = Column::new()
                     .push(input)
                     .push(scrollable_entries)
                     .spacing(20)
-                    .padding(50);
+                    .padding(20);
 
                 Container::new(content)
+                    .style(Theme::Dark)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .center_x()
@@ -149,7 +156,7 @@ impl ViewModel for i3_config::ConfigEntry {
         Row::new()
             .width(Length::Fill)
             .align_items(Align::Center)
-            .padding(10)
+            .padding(30)
             .push(Text::new(self.description().to_owned()).font(FONT).size(20))
             .push(Space::new(Length::Fill, Length::Shrink))
             .push(Text::new(self.keys().to_owned()).font(FONT).size(20))
