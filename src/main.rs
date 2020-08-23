@@ -110,6 +110,7 @@ impl Application for ApplicationState {
             }
             Message::InputChanged(input) => match &mut self.state {
                 Searcher::Searching(state) => {
+                    state.scroll = scrollable::State::new();
                     state.search_string = input;
                     Command::none()
                 }
