@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install system deps
+      run: sudo apt install libwayland-dev librust-x11-dev -y
     - name: Install latest stable
       uses: actions-rs/toolchain@v1
       with:
