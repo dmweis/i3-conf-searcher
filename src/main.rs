@@ -84,19 +84,23 @@ impl Application for Searcher {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let content: Element<_> = match self {
-            Searcher::Loading => Column::new()
-                .width(Length::Shrink)
-                .push(Text::new("Loading config...").size(40))
+        match self {
+            Searcher::Loading => Container::new(Text::new("Loading config...").size(40))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .center_x()
+                .center_y()
                 .into(),
-            Searcher::Error => Column::new()
-                .width(Length::Shrink)
-                .push(
-                    Text::new("Error loading i3 config")
-                        .size(40)
-                        .color(Color::from_rgb(1., 0., 0.)),
-                )
-                .into(),
+            Searcher::Error => Container::new(
+                Text::new("Error loading i3 config")
+                    .size(40)
+                    .color(Color::from_rgb(1., 0., 0.)),
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
+            .into(),
             Searcher::Searching {
                 scroll,
                 search_string,
@@ -119,23 +123,22 @@ impl Application for Searcher {
                         column.push(config_entry.view())
                     });
 
-                let scrollable_entries = Scrollable::new(scroll).padding(40).push(entries);
+                let scrollable_entries = Scrollable::new(scroll).push(entries);
 
                 let content = Column::new()
                     .push(input)
                     .push(scrollable_entries)
                     .spacing(20)
-                    .padding(20);
-                content.into()
-            }
-        };
+                    .padding(50);
 
-        Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .align_y(iced::Align::Start)
-            .into()
+                Container::new(content)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .center_x()
+                    .align_y(iced::Align::Start)
+                    .into()
+            }
+        }
     }
 }
 
