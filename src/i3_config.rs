@@ -47,7 +47,7 @@ pub struct ConfigMetadata {
 
 impl ConfigMetadata {
     fn parse(text: &str) -> Result<ConfigMetadata> {
-        let re = Regex::new(r"##(?P<group>.*)//(?P<description>.*)//(?P<keys>.*)##")?;
+        let re = Regex::new(r"(?m)^\s*##(?P<group>.*)//(?P<description>.*)//(?P<keys>.*)##")?;
         let mut entries = vec![];
         for cap in re.captures_iter(text) {
             let entry = ConfigEntry {
@@ -156,6 +156,13 @@ mod tests {
                 keys: String::from("keys1"),
             }
         );
+    }
+
+    #[test]
+    fn parse_simple_i3_ignore_commented() {
+        let sample = "# ## group1 // description1 // keys1 ## some comments";
+        let config = ConfigMetadata::parse(sample).unwrap();
+        assert!(config.entries.is_empty());
     }
 
     #[test]
