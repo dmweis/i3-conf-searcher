@@ -71,6 +71,7 @@ enum Searcher {
 enum Message {
     ConfigLoaded(Result<i3_config::ConfigMetadata, LoadError>),
     InputChanged(String),
+    EnterPressed,
 }
 
 #[derive(Debug, Clone)]
@@ -116,6 +117,7 @@ impl Application for ApplicationState {
                 }
                 _ => Command::none(),
             },
+            Message::EnterPressed => std::process::exit(0),
         }
     }
 
@@ -148,7 +150,8 @@ impl Application for ApplicationState {
                 )
                 .width(Length::Fill)
                 .style(self.theme)
-                .size(40);
+                .size(40)
+                .on_submit(Message::EnterPressed);
 
                 let entries = state
                     .shortcuts
