@@ -1,4 +1,3 @@
-
 use iced::{button, container, scrollable, text_input};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,10 +79,7 @@ mod light {
 }
 
 mod dark {
-    use iced::{
-        button, container, scrollable, text_input,
-        Background, Color,
-    };
+    use iced::{button, container, scrollable, text_input, Background, Color};
 
     const SURFACE: Color = Color::from_rgb(
         0x40 as f32 / 255.0,

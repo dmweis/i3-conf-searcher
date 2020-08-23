@@ -15,14 +15,14 @@ pub fn main() {
 #[derive(Debug)]
 struct ApplicationState {
     theme: Theme,
-    state: Searcher
+    state: Searcher,
 }
 
 impl ApplicationState {
     fn new(theme: Theme) -> ApplicationState {
         ApplicationState {
             theme,
-            state: Searcher::Loading
+            state: Searcher::Loading,
         }
     }
 }
@@ -135,14 +135,17 @@ impl Application for ApplicationState {
                 .style(self.theme)
                 .size(40);
 
-                let entries = state.shortcuts
+                let entries = state
+                    .shortcuts
                     .filter(&state.search_string)
                     .iter()
                     .fold(Column::new(), |column: Column<Message>, config_entry| {
                         column.push(config_entry.view())
                     });
 
-                let scrollable_entries = Scrollable::new(&mut state.scroll).push(entries).style(self.theme);
+                let scrollable_entries = Scrollable::new(&mut state.scroll)
+                    .push(entries)
+                    .style(self.theme);
 
                 let content = Column::new()
                     .push(input)
