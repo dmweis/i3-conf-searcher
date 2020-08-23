@@ -2,7 +2,7 @@ mod i3_config;
 
 use iced::{
     scrollable, text_input, Align, Application, Column, Command, Container, Element, Font, Length,
-    Row, Scrollable, Settings, Space, Text, TextInput,
+    Row, Scrollable, Settings, Space, Text, TextInput, Color
 };
 
 pub fn main() {
@@ -18,6 +18,7 @@ enum Searcher {
         text_input_state: text_input::State,
         shortcuts: i3_config::ConfigMetadata,
     },
+    Error
 }
 
 #[derive(Debug, Clone)]
@@ -64,8 +65,8 @@ impl Application for Searcher {
                 Command::none()
             }
             Message::ConfigLoaded(Err(LoadError)) => {
-                // TODO: Make a screen for this
-                panic!("Failed to load i3 config!");
+                *self = Searcher::Error;
+                Command::none()
             }
             Message::InputChanged(input) => match self {
                 Searcher::Searching {
@@ -87,6 +88,12 @@ impl Application for Searcher {
             Searcher::Loading => Column::new()
                 .width(Length::Shrink)
                 .push(Text::new("Loading config...").size(40))
+                .into(),
+            Searcher::Error => Column::new()
+                .width(Length::Shrink)
+                .push(Text::new("Error loading i3 config")
+                    .size(40)
+                    .color(Color::from_rgb(1., 0., 0.)))
                 .into(),
             Searcher::Searching {
                 scroll,
