@@ -10,14 +10,28 @@ pub fn main() {
 }
 
 #[derive(Debug)]
-enum Searcher {
-    Loading,
-    Searching {
+struct State {
         scroll: scrollable::State,
         search_string: String,
         text_input_state: text_input::State,
         shortcuts: i3_config::ConfigMetadata,
-    },
+}
+
+impl State {
+    pub fn new(config: i3_config::ConfigMetadata) -> State {
+        State {
+            scroll: scrollable::State::new(),
+            search_string: String::from(""),
+            text_input_state: text_input::State::focused(),
+            shortcuts: config,
+        }
+    }
+}
+
+#[derive(Debug)]
+enum Searcher {
+    Loading,
+    Searching(State),
     Error,
 }
 
@@ -55,13 +69,7 @@ impl Application for Searcher {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ConfigLoaded(Ok(config)) => {
-                *self = Searcher::Searching {
-                    scroll: scrollable::State::new(),
-                    search_string: String::from(""),
-                    text_input_state: text_input::State::focused(),
-                    shortcuts: config,
-                };
-
+                *self = Searcher::Searching(State::new(config));
                 Command::none()
             }
             Message::ConfigLoaded(Err(LoadError)) => {
@@ -69,13 +77,8 @@ impl Application for Searcher {
                 Command::none()
             }
             Message::InputChanged(input) => match self {
-                Searcher::Searching {
-                    scroll: _,
-                    search_string,
-                    text_input_state: _,
-                    shortcuts: _,
-                } => {
-                    *search_string = input;
+                Searcher::Searching(state) => {
+                    state.search_string = input;
                     Command::none()
                 }
                 _ => Command::none(),
@@ -101,29 +104,24 @@ impl Application for Searcher {
             .center_x()
             .center_y()
             .into(),
-            Searcher::Searching {
-                scroll,
-                search_string,
-                text_input_state,
-                shortcuts,
-            } => {
+            Searcher::Searching(state) => {
                 let input = TextInput::new(
-                    text_input_state,
+                    &mut state.text_input_state,
                     "Enter search here...",
-                    search_string,
+                    &state.search_string,
                     Message::InputChanged,
                 )
                 .width(Length::Fill)
                 .size(40);
 
-                let entries = shortcuts
-                    .filter(&search_string)
+                let entries = state.shortcuts
+                    .filter(&state.search_string)
                     .iter()
                     .fold(Column::new(), |column: Column<Message>, config_entry| {
                         column.push(config_entry.view())
                     });
 
-                let scrollable_entries = Scrollable::new(scroll).push(entries);
+                let scrollable_entries = Scrollable::new(&mut state.scroll).push(entries);
 
                 let content = Column::new()
                     .push(input)
