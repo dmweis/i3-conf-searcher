@@ -3,13 +3,27 @@ mod style;
 
 use style::Theme;
 
+use clap::Clap;
 use iced::{
     scrollable, text_input, Align, Application, Color, Column, Command, Container, Element, Font,
     Length, Row, Scrollable, Settings, Space, Text, TextInput,
 };
 
+#[derive(Clap)]
+#[clap()]
+struct Args {
+    #[clap(short, long, about = "Use light theme")]
+    light: bool,
+}
+
 pub fn main() {
-    ApplicationState::run(Settings::with_flags(Theme::Dark))
+    let args: Args = Args::parse();
+    let theme = if args.light {
+        Theme::Light
+    } else {
+        Theme::Dark
+    };
+    ApplicationState::run(Settings::with_flags(theme))
 }
 
 #[derive(Debug)]
