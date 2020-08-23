@@ -9,7 +9,22 @@ use iced::{
 };
 
 pub fn main() {
-    Searcher::run(Settings::default())
+    ApplicationState::run(Settings::with_flags(Theme::Dark))
+}
+
+#[derive(Debug)]
+struct ApplicationState {
+    theme: Theme,
+    state: Searcher
+}
+
+impl ApplicationState {
+    fn new(theme: Theme) -> ApplicationState {
+        ApplicationState {
+            theme,
+            state: Searcher::Loading
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -53,14 +68,14 @@ async fn load_i3_config() -> Result<i3_config::ConfigMetadata, LoadError> {
         .map_err(|_| LoadError)
 }
 
-impl Application for Searcher {
+impl Application for ApplicationState {
     type Executor = iced::executor::Default;
     type Message = Message;
-    type Flags = ();
+    type Flags = Theme;
 
-    fn new(_flags: ()) -> (Searcher, Command<Message>) {
+    fn new(flags: Theme) -> (ApplicationState, Command<Message>) {
         (
-            Searcher::Loading,
+            ApplicationState::new(flags),
             Command::perform(load_i3_config(), Message::ConfigLoaded),
         )
     }
@@ -72,14 +87,14 @@ impl Application for Searcher {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ConfigLoaded(Ok(config)) => {
-                *self = Searcher::Searching(State::new(config));
+                self.state = Searcher::Searching(State::new(config));
                 Command::none()
             }
             Message::ConfigLoaded(Err(LoadError)) => {
-                *self = Searcher::Error;
+                self.state = Searcher::Error;
                 Command::none()
             }
-            Message::InputChanged(input) => match self {
+            Message::InputChanged(input) => match &mut self.state {
                 Searcher::Searching(state) => {
                     state.search_string = input;
                     Command::none()
@@ -90,13 +105,13 @@ impl Application for Searcher {
     }
 
     fn view(&mut self) -> Element<Message> {
-        match self {
+        match &mut self.state {
             Searcher::Loading => Container::new(Text::new("Loading config...").size(40))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .center_x()
                 .center_y()
-                .style(Theme::Dark)
+                .style(self.theme)
                 .into(),
             Searcher::Error => Container::new(
                 Text::new("Error loading i3 config")
@@ -107,7 +122,7 @@ impl Application for Searcher {
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(Theme::Dark)
+            .style(self.theme)
             .into(),
             Searcher::Searching(state) => {
                 let input = TextInput::new(
@@ -117,7 +132,7 @@ impl Application for Searcher {
                     Message::InputChanged,
                 )
                 .width(Length::Fill)
-                .style(Theme::Dark)
+                .style(self.theme)
                 .size(40);
 
                 let entries = state.shortcuts
@@ -127,7 +142,7 @@ impl Application for Searcher {
                         column.push(config_entry.view())
                     });
 
-                let scrollable_entries = Scrollable::new(&mut state.scroll).push(entries).style(Theme::Dark);
+                let scrollable_entries = Scrollable::new(&mut state.scroll).push(entries).style(self.theme);
 
                 let content = Column::new()
                     .push(input)
@@ -136,7 +151,7 @@ impl Application for Searcher {
                     .padding(20);
 
                 Container::new(content)
-                    .style(Theme::Dark)
+                    .style(self.theme)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .center_x()
