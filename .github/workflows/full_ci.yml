@@ -61,11 +61,11 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
+          components: clippy
+      - uses: actions-rs/clippy-check@v1.0.7
         with:
-          command: clippy
-          args: -- -D warnings
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
 
   coverage:
     name: Coverage
