@@ -157,6 +157,6 @@ impl ViewModel for i3_config::ConfigEntry {
 }
 
 const FONT: Font = Font::External {
-    name: "Icons",
+    name: "MesloLGS",
     bytes: include_bytes!("../fonts/MesloLGS NF Regular.ttf"),
 };
