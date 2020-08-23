@@ -1,8 +1,8 @@
 mod i3_config;
 
 use iced::{
-    text_input, Align, Application, Column, Command, Container, Element, Font, Length, Row,
-    Settings, Space, Text, TextInput,
+    scrollable, text_input, Align, Application, Column, Command, Container, Element, Font, Length,
+    Row, Scrollable, Settings, Space, Text, TextInput,
 };
 
 pub fn main() {
@@ -13,6 +13,7 @@ pub fn main() {
 enum Searcher {
     Loading,
     Searching {
+        scroll: scrollable::State,
         search_string: String,
         text_input_state: text_input::State,
         shortcuts: i3_config::ConfigMetadata,
@@ -54,6 +55,7 @@ impl Application for Searcher {
         match message {
             Message::ConfigLoaded(Ok(config)) => {
                 *self = Searcher::Searching {
+                    scroll: scrollable::State::new(),
                     search_string: String::from(""),
                     text_input_state: text_input::State::focused(),
                     shortcuts: config,
@@ -67,6 +69,7 @@ impl Application for Searcher {
             }
             Message::InputChanged(input) => match self {
                 Searcher::Searching {
+                    scroll: _,
                     search_string,
                     text_input_state: _,
                     shortcuts: _,
@@ -86,6 +89,7 @@ impl Application for Searcher {
                 .push(Text::new("Loading config...").size(40))
                 .into(),
             Searcher::Searching {
+                scroll,
                 search_string,
                 text_input_state,
                 shortcuts,
@@ -106,9 +110,11 @@ impl Application for Searcher {
                         column.push(config_entry.view())
                     });
 
+                let scrollable_entries = Scrollable::new(scroll).padding(40).push(entries);
+
                 let content = Column::new()
                     .push(input)
-                    .push(entries)
+                    .push(scrollable_entries)
                     .spacing(20)
                     .padding(20);
                 content.into()
