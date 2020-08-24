@@ -156,14 +156,15 @@ impl Application for ApplicationState {
                 )
                 .width(Length::Fill)
                 .style(self.theme)
-                .size(40)
+                .size(30)
+                .padding(10)
                 .on_submit(Message::EnterPressed);
 
                 let entries = state
                     .shortcuts
                     .filter(&state.search_string)
                     .iter()
-                    .fold(Column::new(), |column: Column<Message>, config_entry| {
+                    .fold(Column::new().padding(20), |column: Column<Message>, config_entry| {
                         column.push(config_entry.view())
                     });
 
@@ -174,8 +175,8 @@ impl Application for ApplicationState {
                 let content = Column::new()
                     .push(input)
                     .push(scrollable_entries)
-                    .spacing(20)
-                    .padding(20);
+                    .spacing(10)
+                    .padding(5);
 
                 Container::new(content)
                     .style(self.theme)
@@ -198,7 +199,7 @@ impl ViewModel for i3_config::ConfigEntry {
         Row::new()
             .width(Length::Fill)
             .align_items(Align::Center)
-            .padding(30)
+            .padding(10)
             .push(Text::new(self.description().to_owned()).font(FONT).size(20))
             .push(Space::new(Length::Fill, Length::Shrink))
             .push(Text::new(self.keys().to_owned()).font(FONT).size(20))
