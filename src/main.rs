@@ -69,18 +69,21 @@ enum Searcher {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ConfigLoaded(Result<i3_config::ConfigMetadata, LoadError>),
+    ConfigLoaded(Result<i3_config::ConfigMetadata, I3ConfigError>),
     InputChanged(String),
     EnterPressed,
 }
 
 #[derive(Debug, Clone)]
-struct LoadError;
+#[non_exhaustive]
+enum I3ConfigError {
+    LoadError,
+}
 
-async fn load_i3_config() -> Result<i3_config::ConfigMetadata, LoadError> {
+async fn load_i3_config() -> Result<i3_config::ConfigMetadata, I3ConfigError> {
     i3_config::ConfigMetadata::load_ipc()
         .await
-        .map_err(|_| LoadError)
+        .map_err(|_| I3ConfigError::LoadError)
 }
 
 impl Application for ApplicationState {
@@ -105,7 +108,7 @@ impl Application for ApplicationState {
                 self.state = Searcher::Searching(State::new(config));
                 Command::none()
             }
-            Message::ConfigLoaded(Err(LoadError)) => {
+            Message::ConfigLoaded(Err(_)) => {
                 self.state = Searcher::Error;
                 Command::none()
             }
