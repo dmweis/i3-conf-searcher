@@ -160,13 +160,10 @@ impl Application for ApplicationState {
                 .padding(10)
                 .on_submit(Message::EnterPressed);
 
-                let entries = state
-                    .shortcuts
-                    .filter(&state.search_string)
-                    .iter()
-                    .fold(Column::new().padding(20), |column: Column<Message>, config_entry| {
-                        column.push(config_entry.view())
-                    });
+                let entries = state.shortcuts.filter(&state.search_string).iter().fold(
+                    Column::new().padding(20),
+                    |column: Column<Message>, config_entry| column.push(config_entry.view()),
+                );
 
                 let scrollable_entries = Scrollable::new(&mut state.scroll)
                     .push(entries)
