@@ -10,7 +10,10 @@ use iced::{
 };
 
 #[derive(Clap)]
-#[clap()]
+#[clap(
+    about = "Application for searching i3 config",
+    author = "David W. <dweis7@gmail.com>"
+)]
 struct Args {
     #[clap(short, long, about = "Use light theme")]
     light: bool,
