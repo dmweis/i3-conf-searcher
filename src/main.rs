@@ -5,8 +5,8 @@ use style::Theme;
 
 use clap::Clap;
 use iced::{
-    scrollable, text_input, Align, Application, Color, Column, Command, Container, Element, Font,
-    Length, Row, Scrollable, Settings, Space, Text, TextInput,
+    keyboard, scrollable, text_input, Align, Application, Color, Column, Command, Container,
+    Element, Font, Length, Row, Scrollable, Settings, Space, Text, TextInput,
 };
 
 #[derive(Clap)]
@@ -74,7 +74,7 @@ enum Searcher {
 enum Message {
     ConfigLoaded(Result<i3_config::ConfigMetadata, I3ConfigError>),
     InputChanged(String),
-    EnterPressed,
+    Exit,
 }
 
 #[derive(Debug, Clone)]
@@ -123,7 +123,7 @@ impl Application for ApplicationState {
                 }
                 _ => Command::none(),
             },
-            Message::EnterPressed => std::process::exit(0),
+            Message::Exit => std::process::exit(0),
         }
     }
 
@@ -158,7 +158,7 @@ impl Application for ApplicationState {
                 .style(self.theme)
                 .size(30)
                 .padding(10)
-                .on_submit(Message::EnterPressed);
+                .on_submit(Message::Exit);
 
                 let entries = state.shortcuts.filter(&state.search_string).iter().fold(
                     Column::new().padding(20),
@@ -181,6 +181,18 @@ impl Application for ApplicationState {
                     .height(Length::Fill)
                     .center_x()
                     .align_y(iced::Align::Start)
+                    .on_key_event(|event| {
+                        if let keyboard::Event::KeyPressed {
+                            key_code,
+                            modifiers: _,
+                        } = event
+                        {
+                            if let keyboard::KeyCode::Escape = key_code {
+                                return Some(Message::Exit);
+                            }
+                        }
+                        None
+                    })
                     .into()
             }
         }
