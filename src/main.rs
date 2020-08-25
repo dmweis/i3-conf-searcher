@@ -5,8 +5,13 @@ use style::Theme;
 
 use clap::Clap;
 use iced::{
-    keyboard, scrollable, text_input, Align, Application, Color, Column, Command, Container,
-    Element, Font, Length, Row, Scrollable, Settings, Space, Text, TextInput,
+    scrollable, text_input, Align, Application, Color, Column, Command, Container, Element, Font,
+    Length, Row, Scrollable, Settings, Space, Subscription, Text, TextInput,
+};
+
+use iced_native::{
+    input::keyboard::{Event::Input, KeyCode},
+    Event::Keyboard,
 };
 
 #[derive(Clap)]
@@ -75,6 +80,7 @@ enum Message {
     ConfigLoaded(Result<i3_config::ConfigMetadata, I3ConfigError>),
     InputChanged(String),
     Exit,
+    EventOccurred(iced_native::Event),
 }
 
 #[derive(Debug, Clone)]
@@ -124,7 +130,26 @@ impl Application for ApplicationState {
                 _ => Command::none(),
             },
             Message::Exit => std::process::exit(0),
+            Message::EventOccurred(event) => {
+                if let Keyboard(event) = event {
+                    if let Input {
+                        state: _,
+                        key_code,
+                        modifiers: _,
+                    } = event
+                    {
+                        if key_code == KeyCode::Escape {
+                            std::process::exit(0)
+                        }
+                    }
+                }
+                Command::none()
+            }
         }
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        iced_native::subscription::events().map(Message::EventOccurred)
     }
 
     fn view(&mut self) -> Element<Message> {
@@ -181,18 +206,6 @@ impl Application for ApplicationState {
                     .height(Length::Fill)
                     .center_x()
                     .align_y(iced::Align::Start)
-                    .on_key_event(|event| {
-                        if let keyboard::Event::KeyPressed {
-                            key_code,
-                            modifiers: _,
-                        } = event
-                        {
-                            if let keyboard::KeyCode::Escape = key_code {
-                                return Some(Message::Exit);
-                            }
-                        }
-                        None
-                    })
                     .into()
             }
         }
