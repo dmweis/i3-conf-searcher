@@ -38,6 +38,7 @@ pub fn main() {
 struct ApplicationState {
     theme: Theme,
     state: Searcher,
+    modifier_state: i3_config::Modifiers,
 }
 
 impl ApplicationState {
@@ -45,6 +46,7 @@ impl ApplicationState {
         ApplicationState {
             theme,
             state: Searcher::Loading,
+            modifier_state: i3_config::Modifiers::default(),
         }
     }
 }
@@ -135,9 +137,16 @@ impl Application for ApplicationState {
                     if let Input {
                         state: _,
                         key_code,
-                        modifiers: _,
+                        modifiers,
                     } = event
                     {
+                        let modifier_state = i3_config::Modifiers::new(
+                            modifiers.shift,
+                            modifiers.control,
+                            modifiers.alt,
+                            modifiers.logo,
+                        );
+                        self.modifier_state = modifier_state;
                         if key_code == KeyCode::Escape {
                             std::process::exit(0)
                         }
@@ -185,10 +194,25 @@ impl Application for ApplicationState {
                 .padding(10)
                 .on_submit(Message::Exit);
 
-                let entries = state.shortcuts.filter(&state.search_string).iter().fold(
-                    Column::new().padding(20),
-                    |column: Column<Message>, config_entry| column.push(config_entry.view()),
-                );
+                let modifiers_label = Row::new()
+                    .width(Length::Fill)
+                    .align_items(Align::Start)
+                    .push(Space::new(Length::Units(10), Length::Units(20)))
+                    .push(
+                        Text::new(self.modifier_state.description())
+                            .color(Color::from_rgb(0.5, 0.5, 0.5))
+                            .font(FONT)
+                            .size(20),
+                    );
+
+                let entries = state
+                    .shortcuts
+                    .filter(&state.search_string, &self.modifier_state)
+                    .iter()
+                    .fold(
+                        Column::new().padding(20),
+                        |column: Column<Message>, config_entry| column.push(config_entry.view()),
+                    );
 
                 let scrollable_entries = Scrollable::new(&mut state.scroll)
                     .push(entries)
@@ -196,6 +220,7 @@ impl Application for ApplicationState {
 
                 let content = Column::new()
                     .push(input)
+                    .push(modifiers_label)
                     .push(scrollable_entries)
                     .spacing(10)
                     .padding(5);
