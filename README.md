@@ -7,7 +7,7 @@ Heavily inspired by [Remontoire](https://github.com/regolith-linux/remontoire)
 And the amazing [Regolith Linux group](https://github.com/regolith-linux)  
 Please check them out!  
 
-![i3 searcher](https://media.giphy.com/media/iH17WdVDn3IXyGp4q5/giphy.gif)
+![i3 searcher](pictures/i3_conf_searcher_modifiers.webm)
 
 ## Installation
 
