@@ -9,6 +9,13 @@ Please check them out!
 
 ![i3 searcher](pictures/i3_conf_searcher_modifiers.gif)
 
+## Usage
+
+You can both fuzzy search by text or by modifier keys
+
+Be warned that modifier keys are a bit flakey on some distros!  
+Meta and Alt sometimes have issues registering, you may need to tap Ctrl to cause the display to refresh.  
+
 ## Installation
 
 To install from source you can use cargo
