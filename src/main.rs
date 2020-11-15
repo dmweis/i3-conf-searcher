@@ -247,6 +247,13 @@ impl ViewModel for i3_config::ConfigEntry {
             .width(Length::Fill)
             .align_items(Align::Center)
             .padding(10)
+            .push(
+                Text::new(self.group().to_owned())
+                    .font(FONT)
+                    .size(20)
+                    .color(Color::from_rgb(0.9, 0.6, 0.1)),
+            )
+            .push(Space::new(Length::Units(10), Length::Shrink))
             .push(Text::new(self.description().to_owned()).font(FONT).size(20))
             .push(Space::new(Length::Fill, Length::Shrink))
             .push(Text::new(self.keys().to_owned()).font(FONT).size(20))

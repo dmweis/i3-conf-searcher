@@ -76,8 +76,16 @@ pub struct ConfigEntry {
 }
 
 impl ConfigEntry {
+    pub fn group(&self) -> &str {
+        &self.group
+    }
+
     pub fn description(&self) -> &str {
         &self.description
+    }
+
+    pub fn full_text(&self) -> String {
+        format!("{} {}", self.group, self.description)
     }
 
     pub fn keys(&self) -> &str {
@@ -146,7 +154,7 @@ impl ConfigMetadata {
         let matcher = SkimMatcherV2::default();
         let mut matches = vec![];
         for entry in &self.entries {
-            if let Some(score) = matcher.fuzzy_match(entry.description(), filter) {
+            if let Some(score) = matcher.fuzzy_match(&entry.full_text(), filter) {
                 if entry.matches_modifiers(&modifiers) {
                     matches.push((entry, score))
                 }
@@ -297,6 +305,16 @@ mod tests {
         assert_eq!(filtered_entries.len(), 2);
         assert_eq!(filtered_entries[0].description(), String::from("abc"));
         assert_eq!(filtered_entries[1].description(), String::from("abdc"));
+    }
+
+    #[test]
+    fn filter_i3_by_group() {
+        let sample = "## group1 // abdc // keys1 ##
+        ## group2 // abc // keys2 ##";
+        let config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("grp2", &Modifiers::default());
+        assert_eq!(filtered_entries.len(), 1);
+        assert_eq!(filtered_entries[0].description(), String::from("abc"));
     }
 
     #[test]
