@@ -170,11 +170,10 @@ mod tests {
     use super::*;
 
     fn simple_i3_config() -> &'static str {
-        let sample = "## group1 // description1 // keys1 ##
+        "## group1 // description1 // keys1 ##
         bindsym $mod+Ctrl+$alt+Left move workspace to output left
         ## group2 // description2 // keys2 ##
-        bindsym $mod+grave exec /usr/bin/x-terminal-emulator";
-        sample
+        bindsym $mod+grave exec /usr/bin/x-terminal-emulator"
     }
 
     #[test]
