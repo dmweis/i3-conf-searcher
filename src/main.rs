@@ -132,24 +132,22 @@ impl Application for ApplicationState {
                 _ => Command::none(),
             },
             Message::Exit => std::process::exit(0),
-            Message::EventOccurred(Keyboard(event)) => {
-                if let Input {
-                    state: _,
-                    key_code,
-                    modifiers,
-                } = event
-                {
-                    let modifier_state = i3_config::Modifiers::new(
-                        modifiers.shift,
-                        modifiers.control,
-                        modifiers.alt,
-                        modifiers.logo,
-                    );
-                    self.modifier_state = modifier_state;
-                    if key_code == KeyCode::Escape {
-                        std::process::exit(0)
-                    }
+            Message::EventOccurred(Keyboard(Input {
+                state: _,
+                key_code,
+                modifiers,
+            })) => {
+                let modifier_state = i3_config::Modifiers::new(
+                    modifiers.shift,
+                    modifiers.control,
+                    modifiers.alt,
+                    modifiers.logo,
+                );
+                self.modifier_state = modifier_state;
+                if key_code == KeyCode::Escape {
+                    std::process::exit(0)
                 }
+
                 Command::none()
             }
             Message::EventOccurred(_) => Command::none(),
