@@ -11,7 +11,8 @@ use iced::{
 
 use iced_native::{
     keyboard::{Event, KeyCode},
-    Event::Keyboard,
+    window,
+    Event::{Keyboard, Window},
 };
 
 #[derive(Clap)]
@@ -22,6 +23,8 @@ use iced_native::{
 struct Args {
     #[clap(short, long, about = "Use light theme")]
     light: bool,
+    #[clap(short, long, about = "Stay alive after focus loss")]
+    keep_alive: bool,
 }
 
 pub fn main() {
@@ -31,20 +34,38 @@ pub fn main() {
     } else {
         Theme::Dark
     };
-    ApplicationState::run(Settings::with_flags(theme)).unwrap()
+    let init_flags = InitFlags::new(theme, !args.keep_alive);
+    ApplicationState::run(Settings::with_flags(init_flags)).unwrap()
+}
+
+#[derive(Debug)]
+struct InitFlags {
+    theme: Theme,
+    exit_on_focus_loss: bool,
+}
+
+impl InitFlags {
+    fn new(theme: Theme, exit_on_focus_loss: bool) -> Self {
+        InitFlags {
+            theme,
+            exit_on_focus_loss,
+        }
+    }
 }
 
 #[derive(Debug)]
 struct ApplicationState {
     theme: Theme,
+    exit_on_focus_loss: bool,
     state: Searcher,
     modifier_state: i3_config::Modifiers,
 }
 
 impl ApplicationState {
-    fn new(theme: Theme) -> ApplicationState {
+    fn new(theme: Theme, exit_on_focus_loss: bool) -> ApplicationState {
         ApplicationState {
             theme,
+            exit_on_focus_loss,
             state: Searcher::Loading,
             modifier_state: i3_config::Modifiers::default(),
         }
@@ -100,11 +121,11 @@ async fn load_i3_config() -> Result<i3_config::ConfigMetadata, I3ConfigError> {
 impl Application for ApplicationState {
     type Executor = iced::executor::Default;
     type Message = Message;
-    type Flags = Theme;
+    type Flags = InitFlags;
 
-    fn new(flags: Theme) -> (ApplicationState, Command<Message>) {
+    fn new(flags: Self::Flags) -> (ApplicationState, Command<Message>) {
         (
-            ApplicationState::new(flags),
+            ApplicationState::new(flags.theme, flags.exit_on_focus_loss),
             Command::perform(load_i3_config(), Message::ConfigLoaded),
         )
     }
@@ -157,7 +178,13 @@ impl Application for ApplicationState {
                 // This may be flaky and in the future this may need a better solution
                 self.modifier_state = modifier_state;
                 if key_code == KeyCode::Escape {
-                    std::process::exit(0)
+                    std::process::exit(0);
+                }
+                Command::none()
+            }
+            Message::EventOccurred(Window(window::Event::Unfocused)) => {
+                if self.exit_on_focus_loss {
+                    std::process::exit(0);
                 }
                 Command::none()
             }
