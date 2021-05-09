@@ -5,12 +5,12 @@ use style::Theme;
 
 use clap::Clap;
 use iced::{
-    scrollable, text_input, Align, Application, Color, Column, Command, Container, Element, Font,
-    Length, Row, Scrollable, Settings, Space, Subscription, Text, TextInput,
+    scrollable, text_input, Align, Application, Clipboard, Color, Column, Command, Container,
+    Element, Font, Length, Row, Scrollable, Settings, Space, Subscription, Text, TextInput,
 };
 
 use iced_native::{
-    input::keyboard::{Event::Input, KeyCode},
+    keyboard::{Event, KeyCode},
     Event::Keyboard,
 };
 
@@ -31,7 +31,7 @@ pub fn main() {
     } else {
         Theme::Dark
     };
-    ApplicationState::run(Settings::with_flags(theme))
+    ApplicationState::run(Settings::with_flags(theme)).unwrap()
 }
 
 #[derive(Debug)]
@@ -113,7 +113,7 @@ impl Application for ApplicationState {
         String::from("i3 Config Searcher")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _: &mut Clipboard) -> Command<Message> {
         match message {
             Message::ConfigLoaded(Ok(config)) => {
                 self.state = Searcher::Searching(State::new(config));
@@ -132,8 +132,17 @@ impl Application for ApplicationState {
                 _ => Command::none(),
             },
             Message::Exit => std::process::exit(0),
-            Message::EventOccurred(Keyboard(Input {
-                state: _,
+            Message::EventOccurred(Keyboard(Event::ModifiersChanged(modifiers))) => {
+                let modifier_state = i3_config::Modifiers::new(
+                    modifiers.shift,
+                    modifiers.control,
+                    modifiers.alt,
+                    modifiers.logo,
+                );
+                self.modifier_state = modifier_state;
+                Command::none()
+            }
+            Message::EventOccurred(Keyboard(Event::KeyReleased {
                 key_code,
                 modifiers,
             })) => {
@@ -143,11 +152,13 @@ impl Application for ApplicationState {
                     modifiers.alt,
                     modifiers.logo,
                 );
+                // This will work because KeyDown will release focus from the text input
+                // and then we get the event here
+                // This may be flaky and in the future this may need a better solution
                 self.modifier_state = modifier_state;
                 if key_code == KeyCode::Escape {
                     std::process::exit(0)
                 }
-
                 Command::none()
             }
             Message::EventOccurred(_) => Command::none(),
