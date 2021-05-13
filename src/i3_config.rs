@@ -73,9 +73,21 @@ pub struct ConfigEntry {
     group: String,
     description: String,
     keys: String,
+    description_indices: Option<Vec<usize>>,
+    group_indices: Option<Vec<usize>>,
 }
 
 impl ConfigEntry {
+    pub fn new(group: String, description: String, keys: String) -> Self {
+        ConfigEntry {
+            group,
+            description,
+            keys,
+            description_indices: None,
+            group_indices: None,
+        }
+    }
+
     pub fn group(&self) -> &str {
         &self.group
     }
@@ -108,6 +120,67 @@ impl ConfigEntry {
         }
         true
     }
+
+    pub fn clear_matches(&mut self) {
+        self.group_indices = None;
+        self.description_indices = None;
+    }
+
+    pub fn set_group_indices(&mut self, indices: Vec<usize>) {
+        self.group_indices = Some(indices);
+    }
+
+    pub fn set_description_indices(&mut self, indices: Vec<usize>) {
+        self.description_indices = Some(indices);
+    }
+
+    pub fn matched_description(&self) -> Vec<MatchElement> {
+        split_to_groups_by_indices(&self.description(), self.description_indices.as_ref())
+    }
+    pub fn matched_group(&self) -> Vec<MatchElement> {
+        split_to_groups_by_indices(&self.group(), self.group_indices.as_ref())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum MatchElement {
+    Matched(String),
+    Unmatched(String),
+}
+
+fn split_to_groups_by_indices(text: &str, indices: Option<&Vec<usize>>) -> Vec<MatchElement> {
+    if let Some(indices) = indices {
+        let mut parts = vec![];
+        let mut buffer = String::new();
+        let mut last_matched = false;
+        for (index, character) in text.chars().enumerate() {
+            let matched = indices.contains(&index);
+            if matched {
+                if last_matched {
+                    buffer.push(character);
+                } else {
+                    parts.push(MatchElement::Unmatched(buffer.clone()));
+                    buffer.clear();
+                    buffer.push(character);
+                }
+            } else if last_matched {
+                parts.push(MatchElement::Matched(buffer.clone()));
+                buffer.clear();
+                buffer.push(character);
+            } else {
+                buffer.push(character);
+            }
+            last_matched = matched;
+        }
+        if last_matched {
+            parts.push(MatchElement::Matched(buffer));
+        } else {
+            parts.push(MatchElement::Unmatched(buffer));
+        }
+        parts
+    } else {
+        vec![MatchElement::Unmatched(text.to_owned())]
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -120,26 +193,23 @@ impl ConfigMetadata {
         let re = Regex::new(r"(?m)^\s*##(?P<group>.*)//(?P<description>.*)//(?P<keys>.*)##")?;
         let mut entries = vec![];
         for cap in re.captures_iter(text) {
-            let entry = ConfigEntry {
-                group: cap
-                    .name("group")
+            let entry = ConfigEntry::new(
+                cap.name("group")
                     .ok_or(I3ConfigError)?
                     .as_str()
                     .trim()
                     .to_owned(),
-                description: cap
-                    .name("description")
+                cap.name("description")
                     .ok_or(I3ConfigError)?
                     .as_str()
                     .trim()
                     .to_owned(),
-                keys: cap
-                    .name("keys")
+                cap.name("keys")
                     .ok_or(I3ConfigError)?
                     .as_str()
                     .trim()
                     .to_owned(),
-            };
+            );
             entries.push(entry);
         }
         Ok(ConfigMetadata { entries })
@@ -150,18 +220,35 @@ impl ConfigMetadata {
         ConfigMetadata::parse(&config_text)
     }
 
-    pub fn filter(&self, filter: &str, modifiers: &Modifiers) -> Vec<&ConfigEntry> {
+    pub fn filter(&mut self, filter: &str, modifiers: &Modifiers) -> Vec<&ConfigEntry> {
         let matcher = SkimMatcherV2::default();
         let mut matches = vec![];
-        for entry in &self.entries {
-            if let Some(score) = matcher.fuzzy_match(&entry.full_text(), filter) {
+        for entry in &mut self.entries {
+            entry.clear_matches();
+            if let Some((score, indices)) = matcher.fuzzy_indices(&entry.full_text(), filter) {
                 if entry.matches_modifiers(&modifiers) {
+                    let group_len = entry.group().len();
+                    entry.set_group_indices(
+                        indices
+                            .iter()
+                            .cloned()
+                            .filter(|val| *val < group_len)
+                            .collect(),
+                    );
+                    entry.set_description_indices(
+                        indices
+                            .iter()
+                            .cloned()
+                            .filter(|val| *val > group_len)
+                            .map(|val| val - group_len - 1)
+                            .collect(),
+                    );
                     matches.push((entry, score))
                 }
             }
         }
         matches.sort_by(|a, b| b.1.cmp(&a.1));
-        matches.into_iter().map(|(val, _)| val).collect()
+        matches.into_iter().map(|(val, _)| &*val).collect()
     }
 }
 
@@ -183,19 +270,19 @@ mod tests {
         assert_eq!(config.entries.len(), 2);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("group1"),
-                description: String::from("description1"),
-                keys: String::from("keys1"),
-            }
+            ConfigEntry::new(
+                String::from("group1"),
+                String::from("description1"),
+                String::from("keys1"),
+            )
         );
         assert_eq!(
             config.entries[1],
-            ConfigEntry {
-                group: String::from("group2"),
-                description: String::from("description2"),
-                keys: String::from("keys2"),
-            }
+            ConfigEntry::new(
+                String::from("group2"),
+                String::from("description2"),
+                String::from("keys2"),
+            )
         );
     }
 
@@ -221,11 +308,11 @@ mod tests {
         assert_eq!(config.entries.len(), 1);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("group1"),
-                description: String::from("description1"),
-                keys: String::from("keys1"),
-            }
+            ConfigEntry::new(
+                String::from("group1"),
+                String::from("description1"),
+                String::from("keys1"),
+            )
         );
     }
 
@@ -243,11 +330,11 @@ mod tests {
         assert_eq!(config.entries.len(), 1);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("this is group1"),
-                description: String::from("this is description1"),
-                keys: String::from("this is keys1"),
-            }
+            ConfigEntry::new(
+                String::from("this is group1"),
+                String::from("this is description1"),
+                String::from("this is keys1"),
+            )
         );
     }
 
@@ -259,18 +346,18 @@ mod tests {
         assert_eq!(config.entries.len(), 1);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("group1"),
-                description: String::from("description1"),
-                keys: String::from("keys1"),
-            }
+            ConfigEntry::new(
+                String::from("group1"),
+                String::from("description1"),
+                String::from("keys1"),
+            )
         );
     }
 
     #[test]
     fn filter_i3_entries() {
         let sample = simple_i3_config();
-        let config = ConfigMetadata::parse(sample).unwrap();
+        let mut config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("dsc1", &Modifiers::default());
         assert_eq!(filtered_entries.len(), 1);
         assert_eq!(
@@ -282,7 +369,7 @@ mod tests {
     #[test]
     fn filter_i3_entries_empty_returns_all() {
         let sample = simple_i3_config();
-        let config = ConfigMetadata::parse(sample).unwrap();
+        let mut config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("", &Modifiers::default());
         assert_eq!(filtered_entries.len(), 2);
     }
@@ -290,7 +377,7 @@ mod tests {
     #[test]
     fn filter_i3_entries_no_match() {
         let sample = simple_i3_config();
-        let config = ConfigMetadata::parse(sample).unwrap();
+        let mut config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("qw", &Modifiers::default());
         assert!(filtered_entries.is_empty());
     }
@@ -299,7 +386,7 @@ mod tests {
     fn filter_i3_entries_sorted() {
         let sample = "## group1 // abdc // keys1 ##
         ## group2 // abc // keys2 ##";
-        let config = ConfigMetadata::parse(sample).unwrap();
+        let mut config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("abc", &Modifiers::default());
         assert_eq!(filtered_entries.len(), 2);
         assert_eq!(filtered_entries[0].description(), String::from("abc"));
@@ -310,7 +397,7 @@ mod tests {
     fn filter_i3_by_group() {
         let sample = "## group1 // abdc // keys1 ##
         ## group2 // abc // keys2 ##";
-        let config = ConfigMetadata::parse(sample).unwrap();
+        let mut config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("grp2", &Modifiers::default());
         assert_eq!(filtered_entries.len(), 1);
         assert_eq!(filtered_entries[0].description(), String::from("abc"));
@@ -319,77 +406,115 @@ mod tests {
     #[test]
     fn test_modifiers_shift() {
         let modifiers = Modifiers::new(true, false, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<shift>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<shift>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_not_shift() {
         let modifiers = Modifiers::new(true, false, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<ctrl>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<ctrl>"),
+        );
         assert!(!short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_shift_upper_case() {
         let modifiers = Modifiers::new(true, false, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<Shift><ctrl>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<Shift><ctrl>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_control() {
         let modifiers = Modifiers::new(false, true, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<ctrl><alt>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<ctrl><alt>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_alt() {
         let modifiers = Modifiers::new(false, false, true, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<alt>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<alt>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_meta() {
         let modifiers = Modifiers::new(false, false, false, true);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_ctrl_shift() {
         let modifiers = Modifiers::new(true, true, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<Shift><ctrl>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<Shift><ctrl>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
+    }
+
+    #[test]
+    fn highlight_simple_group() {
+        let sample = "## group1 // abdc // keys1 ##";
+        let mut config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("gro", &Modifiers::default());
+        let expected_group = vec![
+            MatchElement::Unmatched("".to_owned()),
+            MatchElement::Matched("gro".to_owned()),
+            MatchElement::Unmatched("up1".to_owned()),
+        ];
+        let expected_description = vec![MatchElement::Unmatched("abdc".to_owned())];
+        assert_eq!(filtered_entries[0].matched_group(), expected_group);
+        assert_eq!(
+            filtered_entries[0].matched_description(),
+            expected_description
+        );
+    }
+
+    #[test]
+    fn highlight_simple_with_space() {
+        let sample = "## group1 // abdc // keys1 ##";
+        let mut config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("group1 abdc", &Modifiers::default());
+        let expected_group = vec![
+            MatchElement::Unmatched("".to_owned()),
+            MatchElement::Matched("group1".to_owned()),
+        ];
+        let expected_description = vec![
+            MatchElement::Unmatched("".to_owned()),
+            MatchElement::Matched("abdc".to_owned()),
+        ];
+        assert_eq!(filtered_entries[0].matched_group(), expected_group);
+        assert_eq!(
+            filtered_entries[0].matched_description(),
+            expected_description
+        );
     }
 }
