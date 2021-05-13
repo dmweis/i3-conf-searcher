@@ -479,4 +479,42 @@ mod tests {
         );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
+
+    #[test]
+    fn highlight_simple_group() {
+        let sample = "## group1 // abdc // keys1 ##";
+        let mut config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("gro", &Modifiers::default());
+        let expected_group = vec![
+            MatchElement::Unmatched("".to_owned()),
+            MatchElement::Matched("gro".to_owned()),
+            MatchElement::Unmatched("up1".to_owned()),
+        ];
+        let expected_description = vec![MatchElement::Unmatched("abdc".to_owned())];
+        assert_eq!(filtered_entries[0].matched_group(), expected_group);
+        assert_eq!(
+            filtered_entries[0].matched_description(),
+            expected_description
+        );
+    }
+
+    #[test]
+    fn highlight_simple_with_space() {
+        let sample = "## group1 // abdc // keys1 ##";
+        let mut config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("group1 abdc", &Modifiers::default());
+        let expected_group = vec![
+            MatchElement::Unmatched("".to_owned()),
+            MatchElement::Matched("group1".to_owned()),
+        ];
+        let expected_description = vec![
+            MatchElement::Unmatched("".to_owned()),
+            MatchElement::Matched("abdc".to_owned()),
+        ];
+        assert_eq!(filtered_entries[0].matched_group(), expected_group);
+        assert_eq!(
+            filtered_entries[0].matched_description(),
+            expected_description
+        );
+    }
 }
