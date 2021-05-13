@@ -278,19 +278,56 @@ trait ViewModel {
 
 impl ViewModel for i3_config::ConfigEntry {
     fn view(&self) -> Element<Message> {
-        Row::new()
+        let mut row = Row::new()
             .width(Length::Fill)
             .align_items(Align::Center)
-            .padding(10)
-            .push(
-                Text::new(self.group().to_owned())
-                    .font(FONT)
-                    .size(20)
-                    .color(Color::from_rgb(0.9, 0.6, 0.1)),
-            )
-            .push(Space::new(Length::Units(10), Length::Shrink))
-            .push(Text::new(self.description().to_owned()).font(FONT).size(20))
-            .push(Space::new(Length::Fill, Length::Shrink))
+            .padding(10);
+
+        for element in self.matched_group() {
+            match element {
+                i3_config::MatchElement::Matched(element) => {
+                    row = row.push(
+                        Text::new(element)
+                            .font(FONT)
+                            .size(20)
+                            .color(Color::from_rgb(1.0, 0.0, 0.5)),
+                    );
+                }
+
+                i3_config::MatchElement::Unmatched(element) => {
+                    row = row.push(
+                        Text::new(element.to_owned())
+                            .font(FONT)
+                            .size(20)
+                            .color(Color::from_rgb(0.9, 0.6, 0.1)),
+                    );
+                }
+            }
+        }
+        // .push(
+        //     Text::new(self.group().to_owned())
+        //         .font(FONT)
+        //         .size(20)
+        //         .color(Color::from_rgb(0.9, 0.6, 0.1)),
+        // )
+        row = row.push(Space::new(Length::Units(10), Length::Shrink));
+        for element in self.matched_description() {
+            match element {
+                i3_config::MatchElement::Matched(element) => {
+                    row = row.push(
+                        Text::new(element)
+                            .font(FONT)
+                            .size(20)
+                            .color(Color::from_rgb(1.0, 0.0, 0.5)),
+                    );
+                }
+
+                i3_config::MatchElement::Unmatched(element) => {
+                    row = row.push(Text::new(element.to_owned()).font(FONT).size(20));
+                }
+            }
+        }
+        row.push(Space::new(Length::Fill, Length::Shrink))
             .push(Text::new(self.keys().to_owned()).font(FONT).size(20))
             .into()
     }
