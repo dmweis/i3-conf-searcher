@@ -73,9 +73,19 @@ pub struct ConfigEntry {
     group: String,
     description: String,
     keys: String,
+    matched_indices: Option<Vec<usize>>,
 }
 
 impl ConfigEntry {
+    pub fn new(group: String, description: String, keys: String) -> Self {
+        ConfigEntry {
+            group,
+            description,
+            keys,
+            matched_indices: None,
+        }
+    }
+
     pub fn group(&self) -> &str {
         &self.group
     }
@@ -120,26 +130,23 @@ impl ConfigMetadata {
         let re = Regex::new(r"(?m)^\s*##(?P<group>.*)//(?P<description>.*)//(?P<keys>.*)##")?;
         let mut entries = vec![];
         for cap in re.captures_iter(text) {
-            let entry = ConfigEntry {
-                group: cap
-                    .name("group")
+            let entry = ConfigEntry::new(
+                cap.name("group")
                     .ok_or(I3ConfigError)?
                     .as_str()
                     .trim()
                     .to_owned(),
-                description: cap
-                    .name("description")
+                cap.name("description")
                     .ok_or(I3ConfigError)?
                     .as_str()
                     .trim()
                     .to_owned(),
-                keys: cap
-                    .name("keys")
+                cap.name("keys")
                     .ok_or(I3ConfigError)?
                     .as_str()
                     .trim()
                     .to_owned(),
-            };
+            );
             entries.push(entry);
         }
         Ok(ConfigMetadata { entries })
@@ -183,19 +190,19 @@ mod tests {
         assert_eq!(config.entries.len(), 2);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("group1"),
-                description: String::from("description1"),
-                keys: String::from("keys1"),
-            }
+            ConfigEntry::new(
+                String::from("group1"),
+                String::from("description1"),
+                String::from("keys1"),
+            )
         );
         assert_eq!(
             config.entries[1],
-            ConfigEntry {
-                group: String::from("group2"),
-                description: String::from("description2"),
-                keys: String::from("keys2"),
-            }
+            ConfigEntry::new(
+                String::from("group2"),
+                String::from("description2"),
+                String::from("keys2"),
+            )
         );
     }
 
@@ -221,11 +228,11 @@ mod tests {
         assert_eq!(config.entries.len(), 1);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("group1"),
-                description: String::from("description1"),
-                keys: String::from("keys1"),
-            }
+            ConfigEntry::new(
+                String::from("group1"),
+                String::from("description1"),
+                String::from("keys1"),
+            )
         );
     }
 
@@ -243,11 +250,11 @@ mod tests {
         assert_eq!(config.entries.len(), 1);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("this is group1"),
-                description: String::from("this is description1"),
-                keys: String::from("this is keys1"),
-            }
+            ConfigEntry::new(
+                String::from("this is group1"),
+                String::from("this is description1"),
+                String::from("this is keys1"),
+            )
         );
     }
 
@@ -259,11 +266,11 @@ mod tests {
         assert_eq!(config.entries.len(), 1);
         assert_eq!(
             config.entries[0],
-            ConfigEntry {
-                group: String::from("group1"),
-                description: String::from("description1"),
-                keys: String::from("keys1"),
-            }
+            ConfigEntry::new(
+                String::from("group1"),
+                String::from("description1"),
+                String::from("keys1"),
+            )
         );
     }
 
@@ -319,77 +326,77 @@ mod tests {
     #[test]
     fn test_modifiers_shift() {
         let modifiers = Modifiers::new(true, false, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<shift>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<shift>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_not_shift() {
         let modifiers = Modifiers::new(true, false, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<ctrl>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<ctrl>"),
+        );
         assert!(!short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_shift_upper_case() {
         let modifiers = Modifiers::new(true, false, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<Shift><ctrl>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<Shift><ctrl>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_control() {
         let modifiers = Modifiers::new(false, true, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<ctrl><alt>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<ctrl><alt>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_alt() {
         let modifiers = Modifiers::new(false, false, true, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<alt>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<alt>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_meta() {
         let modifiers = Modifiers::new(false, false, false, true);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 
     #[test]
     fn test_modifiers_ctrl_shift() {
         let modifiers = Modifiers::new(true, true, false, false);
-        let short_cut = ConfigEntry {
-            group: String::from("group"),
-            description: String::from("group"),
-            keys: String::from("<Shift><ctrl>"),
-        };
+        let short_cut = ConfigEntry::new(
+            String::from("group"),
+            String::from("group"),
+            String::from("<Shift><ctrl>"),
+        );
         assert!(short_cut.matches_modifiers(&modifiers))
     }
 }
