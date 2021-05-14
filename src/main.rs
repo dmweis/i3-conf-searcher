@@ -242,23 +242,39 @@ impl Application for ApplicationState {
 
                 let entries = state
                     .shortcuts
-                    .filter(&state.search_string, &self.modifier_state)
-                    .iter()
-                    .fold(
+                    .filter(&state.search_string, &self.modifier_state);
+
+                let content = if entries.is_empty() {
+                    let warning = Text::new("No matching entries")
+                        .size(40)
+                        .horizontal_alignment(iced::HorizontalAlignment::Center)
+                        .vertical_alignment(iced::VerticalAlignment::Top)
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .color(Color::from_rgb(0.9, 0.6, 0.1));
+
+                    Column::new()
+                        .push(input)
+                        .push(modifiers_label)
+                        .push(warning)
+                        .spacing(10)
+                        .padding(5)
+                } else {
+                    let entries_column = entries.iter().fold(
                         Column::new().padding(20),
                         |column: Column<Message>, config_entry| column.push(config_entry.view()),
                     );
 
-                let scrollable_entries = Scrollable::new(&mut state.scroll)
-                    .push(entries)
-                    .style(self.theme);
-
-                let content = Column::new()
-                    .push(input)
-                    .push(modifiers_label)
-                    .push(scrollable_entries)
-                    .spacing(10)
-                    .padding(5);
+                    let scrollable_entries = Scrollable::new(&mut state.scroll)
+                        .push(entries_column)
+                        .style(self.theme);
+                    Column::new()
+                        .push(input)
+                        .push(modifiers_label)
+                        .push(scrollable_entries)
+                        .spacing(10)
+                        .padding(5)
+                };
 
                 Container::new(content)
                     .style(self.theme)
