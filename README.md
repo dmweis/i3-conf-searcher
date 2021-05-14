@@ -5,16 +5,16 @@
 
 Heavily inspired by [Remontoire](https://github.com/regolith-linux/remontoire)  
 And the amazing [Regolith Linux group](https://github.com/regolith-linux)  
-Please check them out!  
+Please check them out!
 
-![i3 searcher](pictures/i3_conf_searcher_modifiers.gif)
+![i3 searcher](pictures/i3_config_searcher_highlighting.gif)
 
 ## Usage
 
 You can both fuzzy search by text or by modifier keys
 
 Be warned that modifier keys are a bit flakey on some distros!  
-Meta and Alt sometimes have issues registering, you may need to tap Ctrl to cause the display to refresh.  
+Meta and Alt sometimes have issues registering, you may need to tap Ctrl to cause the display to refresh.
 
 ## Installation
 
@@ -24,9 +24,9 @@ To install from source you can use cargo
 cargo install --git https://github.com/dmweis/i3-conf-searcher
 ```
 
-if you a using X11 and you are building from source you may need the `librust-x11-dev` package available in repository for Ubuntu 20.4  
+if you a using X11 and you are building from source you may need the `librust-x11-dev` package available in repository for Ubuntu 20.4
 
-I am working on adding a `.deb` package here.  
+I am working on adding a `.deb` package here.
 
 ## i3 Config
 
