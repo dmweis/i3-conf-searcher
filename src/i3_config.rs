@@ -1,10 +1,9 @@
+use anyhow::Result;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use regex::Regex;
 use std::{error, fmt};
 use tokio_i3ipc::I3;
-
-type Result<T> = std::result::Result<T, Box<dyn error::Error + Send + Sync>>;
 
 #[derive(Debug, Clone)]
 struct I3ConfigError;
@@ -23,10 +22,10 @@ async fn get_i3_config_ipc() -> Result<String> {
     Ok(config.config)
 }
 
-const SHIFT_PATTERN: &str = "<shift>";
-const CONTROL_PATTERN: &str = "<ctrl>";
-const ALT_PATTERN: &str = "<alt>";
-const META_PATTERN: &str = "<>";
+pub const SHIFT_PATTERN: &str = "<shift>";
+pub const CONTROL_PATTERN: &str = "<ctrl>";
+pub const ALT_PATTERN: &str = "<alt>";
+pub const META_PATTERN: &str = "<>";
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Modifiers {
@@ -75,6 +74,7 @@ pub struct ConfigEntry {
     keys: String,
     description_indices: Option<Vec<usize>>,
     group_indices: Option<Vec<usize>>,
+    selected: bool,
 }
 
 impl ConfigEntry {
@@ -85,6 +85,7 @@ impl ConfigEntry {
             keys,
             description_indices: None,
             group_indices: None,
+            selected: false,
         }
     }
 
@@ -139,6 +140,18 @@ impl ConfigEntry {
     }
     pub fn matched_group(&self) -> Vec<MatchElement> {
         split_to_groups_by_indices(&self.group(), self.group_indices.as_ref())
+    }
+
+    pub fn is_selected(&self) -> bool {
+        self.selected
+    }
+
+    pub fn select(&mut self) {
+        self.selected = true;
+    }
+
+    pub fn unselect(&mut self) {
+        self.selected = false;
     }
 }
 
@@ -229,6 +242,7 @@ impl ConfigMetadata {
         let mut matches = vec![];
         for entry in &mut self.entries {
             entry.clear_matches();
+            entry.unselect();
             if let Some((score, indices)) = matcher.fuzzy_indices(&entry.full_text(), filter) {
                 if entry.matches_modifiers(&modifiers) {
                     let group_len = entry.group().len();
@@ -252,7 +266,10 @@ impl ConfigMetadata {
             }
         }
         matches.sort_by(|a, b| b.1.cmp(&a.1));
-        matches.into_iter().map(|(val, _)| &*val).collect()
+        if let Some((first, _)) = matches.first_mut() {
+            first.select();
+        }
+        matches.into_iter().map(|(entry, _)| &*entry).collect()
     }
 }
 

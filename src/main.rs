@@ -1,12 +1,14 @@
 mod i3_config;
+mod keyboard_controller;
 mod style;
 
 use style::Theme;
 
 use clap::Clap;
 use iced::{
-    scrollable, text_input, Align, Application, Clipboard, Color, Column, Command, Container,
-    Element, Font, Length, Row, Scrollable, Settings, Space, Subscription, Text, TextInput,
+    container, scrollable, text_input, Align, Application, Background, Clipboard, Color, Column,
+    Command, Container, Element, Font, Length, Row, Scrollable, Settings, Space, Subscription,
+    Text, TextInput,
 };
 
 use iced_native::{
@@ -78,6 +80,7 @@ struct State {
     search_string: String,
     text_input_state: text_input::State,
     shortcuts: i3_config::ConfigMetadata,
+    selected_keys: Option<String>,
 }
 
 impl State {
@@ -87,6 +90,7 @@ impl State {
             search_string: String::from(""),
             text_input_state: text_input::State::focused(),
             shortcuts: config,
+            selected_keys: None,
         }
     }
 }
@@ -102,8 +106,8 @@ enum Searcher {
 enum Message {
     ConfigLoaded(Result<i3_config::ConfigMetadata, I3ConfigError>),
     InputChanged(String),
-    Exit,
     EventOccurred(iced_native::Event),
+    Selected,
 }
 
 #[derive(Debug, Clone)]
@@ -144,6 +148,18 @@ impl Application for ApplicationState {
                 self.state = Searcher::Error;
                 Command::none()
             }
+            Message::Selected => {
+                if let Searcher::Searching(state) = &self.state {
+                    if let Some(keys) = &state.selected_keys {
+                        println!("Selected keys are {}", keys);
+                        keyboard_controller::execute(&keys).unwrap();
+                        std::process::exit(0);
+                    } else {
+                        println!("No keys selected");
+                    }
+                }
+                Command::none()
+            }
             Message::InputChanged(input) => match &mut self.state {
                 Searcher::Searching(state) => {
                     state.scroll = scrollable::State::new();
@@ -152,7 +168,6 @@ impl Application for ApplicationState {
                 }
                 _ => Command::none(),
             },
-            Message::Exit => std::process::exit(0),
             Message::EventOccurred(Keyboard(Event::ModifiersChanged(modifiers))) => {
                 let modifier_state = i3_config::Modifiers::new(
                     modifiers.shift,
@@ -227,7 +242,7 @@ impl Application for ApplicationState {
                 .style(self.theme)
                 .size(30)
                 .padding(10)
-                .on_submit(Message::Exit);
+                .on_submit(Message::Selected);
 
                 let modifiers_label = Row::new()
                     .width(Length::Fill)
@@ -245,6 +260,7 @@ impl Application for ApplicationState {
                     .filter(&state.search_string, &self.modifier_state);
 
                 let content = if entries.is_empty() {
+                    state.selected_keys = None;
                     let warning = Text::new("No matching entries")
                         .size(40)
                         .horizontal_alignment(iced::HorizontalAlignment::Center)
@@ -260,6 +276,8 @@ impl Application for ApplicationState {
                         .spacing(10)
                         .padding(5)
                 } else {
+                    state.selected_keys =
+                        Some(entries.first().expect("Can't happen").keys().to_owned());
                     let entries_column = entries.iter().fold(
                         Column::new().padding(20),
                         |column: Column<Message>, config_entry| column.push(config_entry.view()),
@@ -320,12 +338,7 @@ impl ViewModel for i3_config::ConfigEntry {
                 }
             }
         }
-        // .push(
-        //     Text::new(self.group().to_owned())
-        //         .font(FONT)
-        //         .size(20)
-        //         .color(Color::from_rgb(0.9, 0.6, 0.1)),
-        // )
+
         row = row.push(Space::new(Length::Units(10), Length::Shrink));
         for element in self.matched_description() {
             match element {
@@ -343,9 +356,18 @@ impl ViewModel for i3_config::ConfigEntry {
                 }
             }
         }
-        row.push(Space::new(Length::Fill, Length::Shrink))
-            .push(Text::new(self.keys().to_owned()).font(FONT).size(20))
-            .into()
+        row = row
+            .push(Space::new(Length::Fill, Length::Shrink))
+            .push(Text::new(self.keys().to_owned()).font(FONT).size(20));
+
+        if self.is_selected() {
+            Container::new(row)
+                .width(Length::Fill)
+                .style(SelectedContainer {})
+                .into()
+        } else {
+            row.into()
+        }
     }
 }
 
@@ -353,3 +375,15 @@ const FONT: Font = Font::External {
     name: "MesloLGS",
     bytes: include_bytes!("../fonts/MesloLGS NF Regular.ttf"),
 };
+
+pub struct SelectedContainer;
+
+impl container::StyleSheet for SelectedContainer {
+    fn style(&self) -> container::Style {
+        container::Style {
+            background: Some(Background::Color(Color::from_rgb8(45, 43, 79))),
+            text_color: Some(Color::WHITE),
+            ..container::Style::default()
+        }
+    }
+}
