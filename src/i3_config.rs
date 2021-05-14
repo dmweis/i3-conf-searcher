@@ -159,12 +159,16 @@ fn split_to_groups_by_indices(text: &str, indices: Option<&Vec<usize>>) -> Vec<M
                 if last_matched {
                     buffer.push(character);
                 } else {
-                    parts.push(MatchElement::Unmatched(buffer.clone()));
+                    if !buffer.is_empty() {
+                        parts.push(MatchElement::Unmatched(buffer.clone()));
+                    }
                     buffer.clear();
                     buffer.push(character);
                 }
             } else if last_matched {
-                parts.push(MatchElement::Matched(buffer.clone()));
+                if !buffer.is_empty() {
+                    parts.push(MatchElement::Matched(buffer.clone()));
+                }
                 buffer.clear();
                 buffer.push(character);
             } else {
@@ -486,7 +490,6 @@ mod tests {
         let mut config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("gro", &Modifiers::default());
         let expected_group = vec![
-            MatchElement::Unmatched("".to_owned()),
             MatchElement::Matched("gro".to_owned()),
             MatchElement::Unmatched("up1".to_owned()),
         ];
@@ -499,18 +502,29 @@ mod tests {
     }
 
     #[test]
+    fn highlight_simple_description() {
+        let sample = "## group1 // abdc // keys1 ##";
+        let mut config = ConfigMetadata::parse(sample).unwrap();
+        let filtered_entries = config.filter("ab", &Modifiers::default());
+        let expected_group = vec![MatchElement::Unmatched("group1".to_owned())];
+        let expected_description = vec![
+            MatchElement::Matched("ab".to_owned()),
+            MatchElement::Unmatched("dc".to_owned()),
+        ];
+        assert_eq!(filtered_entries[0].matched_group(), expected_group);
+        assert_eq!(
+            filtered_entries[0].matched_description(),
+            expected_description
+        );
+    }
+
+    #[test]
     fn highlight_simple_with_space() {
         let sample = "## group1 // abdc // keys1 ##";
         let mut config = ConfigMetadata::parse(sample).unwrap();
         let filtered_entries = config.filter("group1 abdc", &Modifiers::default());
-        let expected_group = vec![
-            MatchElement::Unmatched("".to_owned()),
-            MatchElement::Matched("group1".to_owned()),
-        ];
-        let expected_description = vec![
-            MatchElement::Unmatched("".to_owned()),
-            MatchElement::Matched("abdc".to_owned()),
-        ];
+        let expected_group = vec![MatchElement::Matched("group1".to_owned())];
+        let expected_description = vec![MatchElement::Matched("abdc".to_owned())];
         assert_eq!(filtered_entries[0].matched_group(), expected_group);
         assert_eq!(
             filtered_entries[0].matched_description(),
