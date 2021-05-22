@@ -11,10 +11,10 @@ type Result<T> = std::result::Result<T, I3ConfigError>;
 pub enum I3ConfigError {
     #[error("failed to parse config")]
     ConfigParsingError,
-    #[cfg(target_family = "unix")]
+    #[allow(dead_code)]
     #[error("failed to query i3 for config")]
     FailedI3Query,
-    #[cfg(target_family = "windows")]
+    #[allow(dead_code)]
     #[error("i3 not supported on this platform")]
     UnsupportedPlatform,
     #[error("Failed to download file")]
