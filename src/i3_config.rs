@@ -1,26 +1,50 @@
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use regex::Regex;
-use std::{error, fmt};
+use thiserror::Error;
+#[cfg(target_os = "unix")]
 use tokio_i3ipc::I3;
 
-type Result<T> = std::result::Result<T, Box<dyn error::Error + Send + Sync>>;
+type Result<T> = std::result::Result<T, I3ConfigError>;
 
-#[derive(Debug, Clone)]
-struct I3ConfigError;
-
-impl fmt::Display for I3ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "failed to parse i3 config")
-    }
+#[derive(Debug, Error, Clone)]
+pub enum I3ConfigError {
+    #[error("failed to parse config")]
+    ConfigParsingError,
+    #[error("i3 not supported on this platform")]
+    UnsupportedPlatform,
+    #[error("Failed to download file")]
+    FailedGetRequest,
 }
 
-impl error::Error for I3ConfigError {}
-
+#[cfg(target_os = "unix")]
 async fn get_i3_config_ipc() -> Result<String> {
     let mut i3 = I3::connect().await?;
     let config = i3.get_config().await?;
     Ok(config.config)
+}
+
+#[cfg(target_os = "windows")]
+async fn get_i3_config_ipc() -> Result<String> {
+    Err(I3ConfigError::UnsupportedPlatform)
+}
+
+async fn download_i3_config(url: &str) -> Result<String> {
+    // TODO (David): This method doesn't really
+    // provide much detail about why it failed.
+    // Maybe add some error propagation. Thiserror
+    // makes that easy
+    let response = reqwest::get(url)
+        .await
+        .map_err(|_| I3ConfigError::FailedGetRequest)?;
+    if !response.status().is_success() {
+        return Err(I3ConfigError::FailedGetRequest);
+    }
+    let config = response
+        .text()
+        .await
+        .map_err(|_| I3ConfigError::FailedGetRequest)?;
+    Ok(config)
 }
 
 const SHIFT_PATTERN: &str = "<shift>";
@@ -194,22 +218,23 @@ pub struct ConfigMetadata {
 
 impl ConfigMetadata {
     fn parse(text: &str) -> Result<ConfigMetadata> {
-        let re = Regex::new(r"(?m)^\s*##(?P<group>.*)//(?P<description>.*)//(?P<keys>.*)##")?;
+        let re = Regex::new(r"(?m)^\s*##(?P<group>.*)//(?P<description>.*)//(?P<keys>.*)##")
+            .map_err(|_| I3ConfigError::ConfigParsingError)?;
         let mut entries = vec![];
         for cap in re.captures_iter(text) {
             let entry = ConfigEntry::new(
                 cap.name("group")
-                    .ok_or(I3ConfigError)?
+                    .ok_or(I3ConfigError::ConfigParsingError)?
                     .as_str()
                     .trim()
                     .to_owned(),
                 cap.name("description")
-                    .ok_or(I3ConfigError)?
+                    .ok_or(I3ConfigError::ConfigParsingError)?
                     .as_str()
                     .trim()
                     .to_owned(),
                 cap.name("keys")
-                    .ok_or(I3ConfigError)?
+                    .ok_or(I3ConfigError::ConfigParsingError)?
                     .as_str()
                     .trim()
                     .to_owned(),
@@ -219,8 +244,13 @@ impl ConfigMetadata {
         Ok(ConfigMetadata { entries })
     }
 
-    pub async fn load_ipc() -> Result<ConfigMetadata> {
+    pub async fn load_from_ipc() -> Result<ConfigMetadata> {
         let config_text = get_i3_config_ipc().await?;
+        ConfigMetadata::parse(&config_text)
+    }
+
+    pub async fn load_from_web(url: &str) -> Result<ConfigMetadata> {
+        let config_text = download_i3_config(url).await?;
         ConfigMetadata::parse(&config_text)
     }
 

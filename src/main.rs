@@ -1,19 +1,17 @@
 mod i3_config;
 mod style;
 
-use style::Theme;
-
 use clap::Clap;
 use iced::{
     scrollable, text_input, Align, Application, Clipboard, Color, Column, Command, Container,
     Element, Font, Length, Row, Scrollable, Settings, Space, Subscription, Text, TextInput,
 };
-
 use iced_native::{
     keyboard::{Event, KeyCode},
     window,
     Event::{Keyboard, Window},
 };
+use style::Theme;
 
 #[derive(Clap)]
 #[clap(
@@ -25,6 +23,10 @@ struct Args {
     light: bool,
     #[clap(short, long, about = "Stay alive after focus loss")]
     keep_alive: bool,
+    /// Url of i3 config
+    /// Use if you don't want to load form i3 domain socket
+    #[clap(long)]
+    url: Option<String>,
 }
 
 pub fn main() {
@@ -34,7 +36,7 @@ pub fn main() {
     } else {
         Theme::Dark
     };
-    let init_flags = InitFlags::new(theme, !args.keep_alive);
+    let init_flags = InitFlags::new(theme, !args.keep_alive, args.url);
     ApplicationState::run(Settings::with_flags(init_flags)).unwrap()
 }
 
@@ -42,13 +44,15 @@ pub fn main() {
 struct InitFlags {
     theme: Theme,
     exit_on_focus_loss: bool,
+    config_url: Option<String>,
 }
 
 impl InitFlags {
-    fn new(theme: Theme, exit_on_focus_loss: bool) -> Self {
+    fn new(theme: Theme, exit_on_focus_loss: bool, config_url: Option<String>) -> Self {
         InitFlags {
             theme,
             exit_on_focus_loss,
+            config_url,
         }
     }
 }
@@ -96,26 +100,25 @@ enum Searcher {
     Loading,
     Searching(State),
     Error,
+    UnsupportedPlatform,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    ConfigLoaded(Result<i3_config::ConfigMetadata, I3ConfigError>),
+    ConfigLoaded(Result<i3_config::ConfigMetadata, i3_config::I3ConfigError>),
     InputChanged(String),
     Exit,
     EventOccurred(iced_native::Event),
 }
 
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-enum I3ConfigError {
-    LoadError,
-}
-
-async fn load_i3_config() -> Result<i3_config::ConfigMetadata, I3ConfigError> {
-    i3_config::ConfigMetadata::load_ipc()
-        .await
-        .map_err(|_| I3ConfigError::LoadError)
+async fn load_i3_config(
+    url: Option<String>,
+) -> Result<i3_config::ConfigMetadata, i3_config::I3ConfigError> {
+    let config_result = match url {
+        Some(url) => i3_config::ConfigMetadata::load_from_web(&url).await,
+        None => i3_config::ConfigMetadata::load_from_ipc().await,
+    };
+    config_result
 }
 
 impl Application for ApplicationState {
@@ -126,7 +129,7 @@ impl Application for ApplicationState {
     fn new(flags: Self::Flags) -> (ApplicationState, Command<Message>) {
         (
             ApplicationState::new(flags.theme, flags.exit_on_focus_loss),
-            Command::perform(load_i3_config(), Message::ConfigLoaded),
+            Command::perform(load_i3_config(flags.config_url), Message::ConfigLoaded),
         )
     }
 
@@ -140,8 +143,11 @@ impl Application for ApplicationState {
                 self.state = Searcher::Searching(State::new(config));
                 Command::none()
             }
-            Message::ConfigLoaded(Err(_)) => {
-                self.state = Searcher::Error;
+            Message::ConfigLoaded(Err(error)) => {
+                self.state = match error {
+                    i3_config::I3ConfigError::UnsupportedPlatform => Searcher::UnsupportedPlatform,
+                    _ => Searcher::Error,
+                };
                 Command::none()
             }
             Message::InputChanged(input) => match &mut self.state {
@@ -207,6 +213,17 @@ impl Application for ApplicationState {
                 .into(),
             Searcher::Error => Container::new(
                 Text::new("Error loading i3 config")
+                    .size(40)
+                    .color(Color::from_rgb(1., 0., 0.)),
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
+            .style(self.theme)
+            .into(),
+            Searcher::UnsupportedPlatform => Container::new(
+                Text::new("i3 only works on Linux")
                     .size(40)
                     .color(Color::from_rgb(1., 0., 0.)),
             )
