@@ -11,8 +11,10 @@ type Result<T> = std::result::Result<T, I3ConfigError>;
 pub enum I3ConfigError {
     #[error("failed to parse config")]
     ConfigParsingError,
+    #[cfg(target_family = "unix")]
     #[error("failed to query i3 for config")]
-    Failed3Query,
+    FailedI3Query,
+    #[cfg(target_family = "windows")]
     #[error("i3 not supported on this platform")]
     UnsupportedPlatform,
     #[error("Failed to download file")]
@@ -23,11 +25,11 @@ pub enum I3ConfigError {
 async fn get_i3_config_ipc() -> Result<String> {
     let mut i3 = I3::connect()
         .await
-        .map_err(|_| I3ConfigError::Failed3Query)?;
+        .map_err(|_| I3ConfigError::Failedi3Query)?;
     let config = i3
         .get_config()
         .await
-        .map_err(|_| I3ConfigError::Failed3Query)?;
+        .map_err(|_| I3ConfigError::Failedi3Query)?;
     Ok(config.config)
 }
 
