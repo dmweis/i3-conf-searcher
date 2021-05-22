@@ -38,6 +38,7 @@ async fn download_i3_config(url: &str) -> Result<String> {
         .await
         .map_err(|_| I3ConfigError::FailedGetRequest)?;
     if !response.status().is_success() {
+        eprintln!("Web request failed with status {:?}", response.status());
         return Err(I3ConfigError::FailedGetRequest);
     }
     let config = response
