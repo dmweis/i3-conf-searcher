@@ -25,11 +25,11 @@ pub enum I3ConfigError {
 async fn get_i3_config_ipc() -> Result<String> {
     let mut i3 = I3::connect()
         .await
-        .map_err(|_| I3ConfigError::Failedi3Query)?;
+        .map_err(|_| I3ConfigError::FailedI3Query)?;
     let config = i3
         .get_config()
         .await
-        .map_err(|_| I3ConfigError::Failedi3Query)?;
+        .map_err(|_| I3ConfigError::FailedI3Query)?;
     Ok(config.config)
 }
 
