@@ -2,7 +2,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use regex::Regex;
 use thiserror::Error;
-#[cfg(target_os = "unix")]
+#[cfg(target_family = "unix")]
 use tokio_i3ipc::I3;
 
 type Result<T> = std::result::Result<T, I3ConfigError>;
@@ -17,14 +17,14 @@ pub enum I3ConfigError {
     FailedGetRequest,
 }
 
-#[cfg(target_os = "unix")]
+#[cfg(target_family = "unix")]
 async fn get_i3_config_ipc() -> Result<String> {
     let mut i3 = I3::connect().await?;
     let config = i3.get_config().await?;
     Ok(config.config)
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(target_family = "windows")]
 async fn get_i3_config_ipc() -> Result<String> {
     Err(I3ConfigError::UnsupportedPlatform)
 }
