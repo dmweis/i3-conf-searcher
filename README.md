@@ -1,6 +1,7 @@
 # i3 Config Searcher
 
-[![Rust](https://github.com/dmweis/i3-conf-searcher/workflows/Rust/badge.svg)](https://github.com/dmweis/i3-conf-searcher/actions)
+[![General](https://github.com/dmweis/i3-conf-searcher/workflows/General/badge.svg)](https://github.com/dmweis/i3-conf-searcher/actions)
+[![General-windows](https://github.com/dmweis/i3-conf-searcher/workflows/General-windows/badge.svg)](https://github.com/dmweis/i3-conf-searcher/actions)
 [![codecov](https://codecov.io/gh/dmweis/i3-conf-searcher/branch/main/graph/badge.svg)](https://codecov.io/gh/dmweis/i3-conf-searcher)
 
 Heavily inspired by [Remontoire](https://github.com/regolith-linux/remontoire)  
