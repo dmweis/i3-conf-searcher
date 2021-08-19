@@ -27,6 +27,16 @@ cargo install --git https://github.com/dmweis/i3-conf-searcher
 
 if you a using X11 and you are building from source you may need the `librust-x11-dev` package available in repository for Ubuntu 20.4
 
+## Dependencies
+
+On Ubuntu 20.04 you will need `libxkbcommon-dev` and `librust-x11-dev` to compile.
+
+Install with:
+
+```shell
+sudo apt update && sudo apt install libxkbcommon-dev librust-x11-dev -y
+```
+
 ## i3 Config
 
 You can add the following entry to your i3 config to make it easier to use
